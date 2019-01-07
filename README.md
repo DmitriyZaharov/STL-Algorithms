@@ -7,6 +7,7 @@
 ```cpp
  bool cmp(const Type1 &a, const Type2 &b);
 ```
+
 Это нужно если мы хотим отсортировать последовательсность в порядке убывания, а не возрастания или хотим реализовать сравнение пользовательских типов данных по определенным критериям.
 
 * Компаратор может быть одним из реализованных в стандартной библиотеке:
@@ -213,7 +214,7 @@ ForwardIt partition( ForwardIt first, ForwardIt last, UnaryPredicate p );
  bool predicate(const Type1 &a);
 ```
 В отличие от компаратора, принимает один элемент последовательсноти.
-
+ашибка
 Данный алгоритм используется когда нужно разбить последовательность на две части по определенному критерию.
 Рассмотрим пример, необходимо разбить последовательность таким образом, чтобы слева находились все четные элементы, а справа соотвестенно нечетные:
 
@@ -244,4 +245,272 @@ ForwardIt partition_point( ForwardIt first, ForwardIt last, UnaryPredicate p );
 Для `std::partition_point`:
 > Given N = std::distance(first, last), performs O(log N) applications of the predicate p. <br>
 However, for non-LegacyRandomAccessIterators, the number of iterator increments is O(N).
+
+## Modifying sequence operations (Преобразования последовательностей)
+### [`std::rotate`](https://en.cppreference.com/w/cpp/algorithm/rotate)
+Основные определения:
+```cpp
+template< class ForwardIt >
+ForwardIt rotate( ForwardIt first, ForwardIt n_first, ForwardIt last );
+```
+Возвращает итератор на элемент `first + (last - n_first)`.
+Алгоритм изменяет последовательность следующим образом:
+* разделяет последовательность на две части [first, n_first) и [n_first, last)
+* меняет их местами, то есть получим [n_first, last) и [first, n_first)
+
+Рассмотрим простой пример:
+```cpp
+std::vector<int> v{2, 4, 2, 0, 5, 10, 7, 3, 7, 1};
+std::cout << "befor simple rotate left  : \n";
+std::cout << v;
+std::rotate(v.begin(), v.begin() + 2, v.end());
+std::cout << "simple rotate left  : \n";
+std::cout << v;
+```
+Вывод:
+```sh
+befor simple rotate left  : 
+2 4 2 0 5 10 7 3 7 1 
+simple rotate left  : 
+2 0 5 10 7 3 7 1 2 4 
+```
+![](https://i.imgur.com/2tLOR6W.jpg)
+Алгоритм `std::rotate` часто используется как вспомогательный для построения более сложных алгоритмов.
+### [`std::reverse`](https://en.cppreference.com/w/cpp/algorithm/reverse)
+Основное определение:
+```cpp
+template< class BidirIt >
+void reverse( BidirIt first, BidirIt last );
+```
+Ещё один знакомый многим алгоритм, принимает два итератора на начало и конец последовательности. Преобразует порядок элементов в последовательности на обратный.
+
+Пример:
+```cpp
+std::vector<int> v_r{1,2,3, 4, 5, 6};
+std::cout << "before reverse :\n";
+std::cout << v_r;
+
+std::reverse(std::begin(v_r), std::end(v_r));
+std::cout << "after reverse :\n";
+std::cout << v_r;
+```
+Вывод:
+```sh
+before reverse :
+1 2 3 4 5 6 
+after reverse :
+6 5 4 3 2 1 
+```
+
+## `stable_*`
+У некоторых алгоритмов есть версии, названия которых начинаются со `stable_`, рассмотрим их.
+
+### [`std::stable_sort`](https://en.cppreference.com/w/cpp/algorithm/stable_sort)
+Основные определения:
+```cpp
+template< class RandomIt >
+void stable_sort( RandomIt first, RandomIt last );
+
+template< class RandomIt, class Compare >
+void stable_sort( RandomIt first, RandomIt last, Compare comp );
+```
+Определения полностью совпадают с алгоритмом `std::sort`. Аналогично `std::sort` алгоритм `std::stable_sort` возвращает отсортированную последовательность элементов. Разница в том, что `std::stable_sort` сохраняет относительный порядок равных элементов после сортировки.
+
+Рассмотрим как это выглядит на примере:
+```cpp
+struct Employee
+{
+    int age;
+    std::string name;  // поле не принимает участие в сортировке
+};
+
+//перегруженный оператор сравнения для структуры Employee, сравнение только по полю age
+bool operator<(const Employee & lhs, const Employee & rhs)
+{
+    return lhs.age < rhs.age;
+}
+```
+
+Создадим последовательсность структур:
+```cpp
+    std::vector<Employee> v =
+            {
+                    {1, "1Zaphod"},
+                    {2, "1Arthur"},
+                    {3, "1Ford"},
+                    {4, "1Ali"},
+                    {5, "1Klack"},
+                    {6, "1Djo"},
+                    {7, "1Lue"},
+
+                    {1, "2Zaphod"},
+                    {2, "2Arthur"},
+                    {3, "2Ford"},
+                    {4, "2Ali"},
+                    {5, "2Klack"},
+                    {6, "2Djo"},
+                    {7, "2Lue"},
+
+                    {1, "3Zaphod"},
+                    {2, "3Arthur"},
+                    {3, "3Ford"},
+                    {4, "3Ali"},
+                    {5, "3Klack"},
+                    {6, "3Djo"},
+                    {7, "3Lue"},
+            };
+
+```
+Отсортируем её с помощью `std::stable_sort`
+```cpp
+    std::cout << "before stable sort :\n";
+
+    for (const Employee & e : v)
+        std::cout << e.age << ", " << e.name << '\n';
+
+    std::stable_sort(v.begin(), v.end());
+    
+    std::cout << "after stable sort :\n";
+    for (const Employee & e : v)
+        std::cout << e.age << ", " << e.name << '\n';
+```
+и посмотрим вывод:
+```sh
+1, 1Zaphod
+1, 2Zaphod
+1, 3Zaphod
+2, 1Arthur
+2, 2Arthur
+2, 3Arthur
+3, 1Ford
+3, 2Ford
+3, 3Ford
+4, 1Ali
+4, 2Ali
+4, 3Ali
+5, 1Klack
+5, 2Klack
+5, 3Klack
+6, 1Djo
+6, 2Djo
+6, 3Djo
+7, 1Lue
+7, 2Lue
+7, 3Lue
+```
+Элементы с одинаковыми значениями, в данном случае элементы `Employee` с одинаковым полем `age` в отсортированном векторе располагаются именно в той последовательности, в какой они были в оригинальном векторе.
+
+Теперь для этой же последовательности посмотрим что получится если заменить `std::stable_sort` на `std::sort`:
+```cpp
+    std::sort(v.begin(), v.end());
+    
+    std::cout << "after sort :\n";
+    for (const Employee & e : v)
+        std::cout << e.age << ", " << e.name << '\n';
+```
+
+Вывод:
+```sh
+1, 3Zaphod
+1, 2Zaphod
+1, 1Zaphod
+2, 1Arthur
+2, 3Arthur
+2, 2Arthur
+3, 1Ford
+3, 3Ford
+3, 2Ford
+4, 2Ali
+4, 3Ali
+4, 1Ali
+5, 2Klack
+5, 1Klack
+5, 3Klack
+6, 2Djo
+6, 1Djo
+6, 3Djo
+7, 2Lue
+7, 1Lue
+7, 3Lue
+```
+Как видим элементы отсортированы, но порядок элементов с одинаковыми значениями не всегда совпадает с порядком в оригинальном векторе.
+
+Алгоритм `std::stable_sort` работает медленее чем `std::sort`.
+
+### [`std::stable_partition`](https://en.cppreference.com/w/cpp/algorithm/stable_partition)
+Определение:
+```cpp
+template< class BidirIt, class UnaryPredicate >
+BidirIt stable_partition( BidirIt first, BidirIt last, UnaryPredicate p );
+```
+В отличие от своего собрата `std::partition` алгоритм `std::stable_sort` сохраняет оригинальную последовательность элементов с одинаковыми значениями.
+Вернемся к примеру со структурой `Employee`
+```cpp
+std::vector<Employee> v =
+        {
+                {1, "1Zaphod"},
+                {2, "1Arthur"},
+                {3, "1Ford"},
+                {4, "1Ali"},
+                {5, "1Klack"},
+                {6, "1Djo"},
+                {7, "1Lue"},
+
+                {1, "2Zaphod"},
+                {2, "2Arthur"},
+                {3, "2Ford"},
+                {4, "2Ali"},
+                {5, "2Klack"},
+                {6, "2Djo"},
+                {7, "2Lue"},
+
+                {1, "3Zaphod"},
+                {2, "3Arthur"},
+                {3, "3Ford"},
+                {4, "3Ali"},
+                {5, "3Klack"},
+                {6, "3Djo"},
+                {7, "3Lue"},
+        };
+```
+Выполним:
+```cpp
+std::stable_partition(v.begin(), v.end(), [](Employee n){return n.age>3;});
+std::cout << "after stable partition :\n";
+for (const Employee & e : v)
+    std::cout << e.age << ", " << e.name << '\n';
+```
+Вывод:
+```sh
+4, 1Ali
+5, 1Klack
+6, 1Djo
+7, 1Lue
+4, 2Ali
+5, 2Klack
+6, 2Djo
+7, 2Lue
+4, 3Ali
+5, 3Klack
+6, 3Djo
+7, 3Lue
+1, 1Zaphod
+2, 1Arthur
+3, 1Ford
+1, 2Zaphod
+2, 2Arthur
+3, 2Ford
+1, 3Zaphod
+2, 3Arthur
+3, 3Ford
+```
+
+
+
+
+
+
+
+
+
 
